@@ -1,12 +1,14 @@
+#!/usr/bin/env python
 import psycopg2
 
 db = psycopg2.connect(database="news")
 c = db.cursor()
 
 # Query for Question 1.
-print "What are the most popular three articles of all time?"
+print "\nWhat are the most popular three articles of all time?"
+print ""
 q1 = """select title, count(*) as views from articles, log
-        where log.path like '%'||articles.slug
+        where log.path = '/article/'||articles.slug
         group by articles.title, articles.author
         order by Views desc limit 3
     """
@@ -19,11 +21,17 @@ for r in res:
 
 
 # Query for Question 2.
-print "Who are the most popular article authors of all time?"
-q2 = """ select name, count(*) as views from authors, articles, log
-         where log.path like '%'||articles.slug and articles.author=authors.id
+print "\nWho are the most popular article authors of all time?"
+print ""
+q2 = """ select name, sum(views) as views
+         from (
+         select name, count(*) as views from authors, articles, log
+         where log.path = '/article/'||articles.slug
+         and articles.author=authors.id
          group by articles.title, articles.author, authors.name
-         order by views desc
+         order by views desc ) as X
+         group by name
+         order by views
      """
 
 c.execute(q2)
@@ -49,10 +57,11 @@ for r in res:
 # group by time ::timestamp::date
 # order by errors desc
 
-print "On which days did more than 1 percent of requests lead to errors?"
+print "\nOn which days did more than 1 percent of requests lead to errors?"
+print ""
 q3 = """ select err.time, (err.errors*100/allreq.requests) as percent_err
          from err, allreq
-         where (err.errors*100/allreq.requests)>1
+         where (err.errors*100/allreq.requests)>1 and err.time=allreq.time
      """
 
 c.execute(q3)
